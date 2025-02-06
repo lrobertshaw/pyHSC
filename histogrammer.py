@@ -13,7 +13,7 @@ plt.style.use(mplhep.style.CMS)
 def setup_bins(nBins):
     eta_bins = np.linspace(-3, 3, nBins)
     phi_bins = np.linspace(-np.pi, np.pi, nBins)
-    bin_width = abs(eta_bins[1] - eta_bins[0]) / 2
+    bin_width = abs(eta_bins[-1] - eta_bins[-2])
     return eta_bins, phi_bins, bin_width
 
 
@@ -86,14 +86,15 @@ def find_local_maxima_with_secondary_exclude_adjacent(pts, N, minPt, exclusionRe
     return maxima_coords, secondary_coords, sums
 
 
-def plot_histogram(pts, eta_edges, phi_edges, maxima_coords, q, qb, eta_bins, phi_bins, ev, nBins, N):
+def plot_histogram(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins, ev, nBins, N, q=None, qb=None):
     plt.figure(figsize=(12, 12), facecolor="white")
     plt.imshow(pts.T, origin='lower', aspect='auto',
                extent=[eta_edges[0], eta_edges[-1], phi_edges[0], phi_edges[-1]],
                cmap='viridis')
 
-    plt.scatter(q.eta, q.phi, s=500, color="white", marker="x", label="H decay quarks")
-    plt.scatter(qb.eta, qb.phi, s=500, color="white", marker="x")
+    if (q!=None) & (qb!=None):
+        plt.scatter(q.eta, q.phi, s=500, color="white", marker="x", label="H decay quarks")
+        plt.scatter(qb.eta, qb.phi, s=500, color="white", marker="x")
     
     bin_width_eta = eta_edges[1] - eta_edges[0]
     bin_width_phi = phi_edges[1] - phi_edges[0]
