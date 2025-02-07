@@ -35,8 +35,9 @@ def create_histogram(eta, phi, pt, eta_bins, phi_bins, ev=0, noise_scale=0.05, l
 
 
 def get_decay_quarks(genParts, bosonPDG, ev):
-    qs, qbs, vs = boostedVs(quarks=getQuarks(genParts), genParts=genParts, bosonPDG=bosonPDG, r=3.0)
-    return qs[ev], qbs[ev]
+    fst, lst = getQuarks(genParts)
+    qs, qbs, vs, qls, qlbs = boostedVs(quarks=fst, lst_quarks=lst, genParts=genParts, bosonPDG=bosonPDG, r=3.0)
+    return qs[ev], qbs[ev], vs[ev], qls[ev], qlbs[ev]
 
 
 def find_local_maxima_with_secondary_exclude_adjacent(pts, N, minPt, exclusionRegion=3, sort=False):
@@ -86,15 +87,16 @@ def find_local_maxima_with_secondary_exclude_adjacent(pts, N, minPt, exclusionRe
     return maxima_coords, secondary_coords, sums
 
 
-def plot_histogram(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins, ev, nBins, N, q=None, qb=None):
+def plot_histogram(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins, ev, nBins, N, *qs):
     plt.figure(figsize=(12, 12), facecolor="white")
     plt.imshow(pts.T, origin='lower', aspect='auto',
                extent=[eta_edges[0], eta_edges[-1], phi_edges[0], phi_edges[-1]],
                cmap='viridis')
 
-    if (q!=None) & (qb!=None):
-        plt.scatter(q.eta, q.phi, s=500, color="white", marker="x", label="H decay quarks")
-        plt.scatter(qb.eta, qb.phi, s=500, color="white", marker="x")
+    for idx, q in enumerate(qs):
+        if idx == 0: plt.scatter(q.eta, q.phi, s=500, color="white", marker="x", label="H decay quarks")
+        plt.scatter(q.eta, q.phi, s=500, color="white", marker="x")
+#         plt.scatter(qb.eta, q.phi, s=500, color="white", marker="x")
     
     bin_width_eta = eta_edges[1] - eta_edges[0]
     bin_width_phi = phi_edges[1] - phi_edges[0]
@@ -123,37 +125,37 @@ def plot_histogram(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins,
     plt.show()
 
     
-def plot_histogram_no_quarks(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins, nBins, N):
-    plt.figure(figsize=(12, 12), facecolor="white")
-    plt.imshow(pts.T, origin='lower', aspect='auto',
-               extent=[eta_edges[0], eta_edges[-1], phi_edges[0], phi_edges[-1]],
-               cmap='viridis')
+# def plot_histogram_no_quarks(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins, nBins, N):
+#     plt.figure(figsize=(12, 12), facecolor="white")
+#     plt.imshow(pts.T, origin='lower', aspect='auto',
+#                extent=[eta_edges[0], eta_edges[-1], phi_edges[0], phi_edges[-1]],
+#                cmap='viridis')
 
-    bin_width_eta = eta_edges[1] - eta_edges[0]
-    bin_width_phi = phi_edges[1] - phi_edges[0]
-    for (i, j) in maxima_coords:
-        eta_center = eta_edges[i] + bin_width_eta / 2
-        phi_center = phi_edges[j] + bin_width_phi / 2
-        plt.gca().add_patch(plt.Rectangle(
-            (eta_center - (N/2) * bin_width_eta, phi_center - (N/2) * bin_width_phi),
-            N * bin_width_eta,
-            N * bin_width_phi,
-            fill=False,
-            edgecolor='red',
-            linewidth=1.5,
-            linestyle='--'
-        ))
+#     bin_width_eta = eta_edges[1] - eta_edges[0]
+#     bin_width_phi = phi_edges[1] - phi_edges[0]
+#     for (i, j) in maxima_coords:
+#         eta_center = eta_edges[i] + bin_width_eta / 2
+#         phi_center = phi_edges[j] + bin_width_phi / 2
+#         plt.gca().add_patch(plt.Rectangle(
+#             (eta_center - (N/2) * bin_width_eta, phi_center - (N/2) * bin_width_phi),
+#             N * bin_width_eta,
+#             N * bin_width_phi,
+#             fill=False,
+#             edgecolor='red',
+#             linewidth=1.5,
+#             linestyle='--'
+#         ))
 
-    plt.xlabel('$\\eta$', fontsize=20)
-    plt.ylabel('$\\phi$', fontsize=20)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.xlim([eta_bins[0], eta_bins[-1]])
-    plt.ylim([phi_bins[0], phi_bins[-1]])
-    plt.title(f'Event = {ev}, nBins = {nBins}, mask size = {N}x{N}', fontsize=20)
-    leg = plt.legend(fontsize=12)
-    for text in leg.get_texts(): text.set_color("white")
-    plt.show()
+#     plt.xlabel('$\\eta$', fontsize=20)
+#     plt.ylabel('$\\phi$', fontsize=20)
+#     plt.xticks(fontsize=16)
+#     plt.yticks(fontsize=16)
+#     plt.xlim([eta_bins[0], eta_bins[-1]])
+#     plt.ylim([phi_bins[0], phi_bins[-1]])
+#     plt.title(f'Event = {ev}, nBins = {nBins}, mask size = {N}x{N}', fontsize=20)
+#     leg = plt.legend(fontsize=12)
+#     for text in leg.get_texts(): text.set_color("white")
+#     plt.show()
     
 
 def create_output_data(pts, maxima_coords, eta_bins, phi_bins, bin_width):
@@ -182,8 +184,8 @@ def histogrammer(data, ev, nBins, N, genParts, bosonPDG, plot=False, minPt=1, ex
 
     # Optional plotting
     if plot == True:
-        q, qb = get_decay_quarks(genParts, bosonPDG, ev)
-        plot_histogram(pts, eta_edges, phi_edges, maxima_coords, q, qb, eta_bins, phi_bins, ev, nBins, N)
+        q, qb, v, ql, qlb = get_decay_quarks(genParts, bosonPDG, ev)
+        plot_histogram(pts, eta_edges, phi_edges, maxima_coords, eta_bins, phi_bins, ev, nBins, N, ql, qlb)
     
     # Create output data
     seeds = create_output_data(pts, maxima_coords, eta_bins, phi_bins, bin_width)

@@ -142,16 +142,19 @@ def getQuarks(gen):
     isSQuark = abs(gen.pdgId) == 3
     isBQuark = abs(gen.pdgId) == 5
 
-    quarkMask = ((isUQuark | isDQuark | isCQuark | isSQuark | isTQuark | isBQuark) & isFirstCopy & isFromHardProcess)
+    quarkFstMask = ((isUQuark | isDQuark | isCQuark | isSQuark | isTQuark | isBQuark) & isFirstCopy & isFromHardProcess)
+    quarkLstMask = ((isUQuark | isDQuark | isCQuark | isSQuark | isTQuark | isBQuark) & isLastCopy & isFromHardProcess)
 
-    return gen[quarkMask]
+    fstCopies, lstCopies = gen[quarkFstMask], gen[quarkLstMask]
+    
+    return fstCopies[fstCopies.pt>0], lstCopies[lstCopies.pt>0]
 
 # def getQuarks(genParts):
 #     defmasks(gen=genParts)
 #     quarkMask = ((isUQuark | isDQuark | isCQuark | isSQuark | isTQuark | isBQuark) & isFirstCopy & isFromHardProcess)
 #     return genParts[quarkMask]
 
-def boostedVs(quarks, genParts, bosonPDG, minMass=0, r=0.8):
+def boostedVs(quarks, lst_quarks, genParts, bosonPDG, minMass=0, r=0.8):
     """
     This function gets all first-copy quarks from the hard process of the event
     It then splits them into particles and antiparticles and finds every combination of the two arrays
@@ -161,14 +164,17 @@ def boostedVs(quarks, genParts, bosonPDG, minMass=0, r=0.8):
     
     # Split array of quarks into quarks and antiquarks
     q, qbar = quarks[(quarks.pdgId > 0)], quarks[quarks.pdgId < 0]
+    ql, qlbar = lst_quarks[(lst_quarks.pdgId > 0)], lst_quarks[lst_quarks.pdgId < 0]
     
     # Get a quark-antiquark pair for every possible combination
     qs, qbars = ak.unzip( ak.cartesian([q, qbar]) )
+    qls, qlbars = ak.unzip( ak.cartesian([ql, qlbar]) )
     
     # Create mask of if combination comes from same parent - to get quarks which are decay products of same boson. Then apply mask
-    sameMother = qs.genPartIdxMother == qbars.genPartIdxMother
-    sameCone = qs.deltaR(qbars) < r    # Can also assert that q and qbar must lie within 1.6 of each other to be able to be inside same l1jet cone
+    sameMother = (qs.genPartIdxMother == qbars.genPartIdxMother)
+    sameCone = qls.deltaR(qlbars) < r    # Can also assert that q and qbar must lie within 1.6 of each other to be able to be inside same l1jet cone
     qs, qbars = qs[sameMother & sameCone], qbars[sameMother & sameCone]
+    qls, qlbars = qls[sameMother & sameCone], qlbars[sameMother & sameCone]
     
     # Find parent particle for pair
     parents = genParts[qs.genPartIdxMother]
@@ -177,8 +183,10 @@ def boostedVs(quarks, genParts, bosonPDG, minMass=0, r=0.8):
     isValidMass = parents.mass > minMass
     parentsMask = isVboson & isValidMass
     parents, qs, qbars = parents[parentsMask], qs[parentsMask], qbars[parentsMask]
+    qls, qlbars = qls[parentsMask], qlbars[parentsMask]
     
-    return qs, qbars, parents
+    # qls and qlbars are the last quarks in the chain, qs and qbars are first quarks
+    return qs, qbars, parents, qls, qlbars
 
 
 def jetQuarkMatcher(l1jet, q1, q2, genParts, bosonPDG, r=0.8):
