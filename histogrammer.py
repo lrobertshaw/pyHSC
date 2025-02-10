@@ -29,7 +29,8 @@ def create_histogram(eta, phi, pt, eta_bins, phi_bins, ev=0, noise_scale=0.05, l
     else: pts, eta_edges, phi_edges = np.histogram2d(eta, phi, bins=[eta_bins, phi_bins], weights=pt)
     
     # Add small random noise to each bin to break degeneracy and avoid mutual exclusion
-    noise = np.random.uniform(-noise_scale, noise_scale, size=pts.shape)
+    np.random.seed(seed=29)
+    noise = np.random.uniform(0, noise_scale, size=pts.shape)
     pts += noise
     
     return pts, eta_edges, phi_edges
