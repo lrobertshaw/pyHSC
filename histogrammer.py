@@ -11,6 +11,7 @@ plt.style.use(mplhep.style.CMS)
 
 
 def setup_bins(nBins):
+    nBins+=1
     eta_bins = np.linspace(-3, 3, nBins)
     phi_bins = np.linspace(-np.pi, np.pi, nBins)
     bin_width = abs(eta_bins[-1] - eta_bins[-2])
